@@ -7,5 +7,5 @@ sh ./build_sim3dr.sh
 cd ..
 
 cd utils/asset
-gcc -shared -Wall -O3 render.c -o render.so -fPIC
+gcc -shared -Wall -O3 render.c -std=c99 -o render.so -fPIC
 cd ../..
