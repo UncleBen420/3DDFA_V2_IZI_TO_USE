@@ -7,21 +7,25 @@ import argparse
 import cv2
 import yaml
 
-from FaceBoxes import FaceBoxes
-from TDDFA import TDDFA
-from utils.render import render
+from facebox.FaceBoxes.FaceBoxes import FaceBoxes
+from facebox.TDDFA import TDDFA
+from facebox.utils.render import render
 #from utils.render_ctypes import render  # faster
-from utils.depth import depth
-from utils.pncc import pncc
-from utils.uv import uv_tex
-from utils.pose import viz_pose
-from utils.serialization import ser_to_ply, ser_to_obj
-from utils.functions import draw_landmarks, get_suffix
-from utils.tddfa_util import str2bool
+from facebox.utils.depth import depth
+from facebox.utils.pncc import pncc
+from facebox.utils.uv import uv_tex
+from facebox.utils.pose import viz_pose
+from facebox.utils.serialization import ser_to_ply, ser_to_obj
+from facebox.utils.functions import draw_landmarks, get_suffix
+from facebox.utils.tddfa_util import str2bool
+from facebox.utils.pose import calc_pose
+import os.path as osp
 
+make_abs_path = lambda fn: osp.join(osp.dirname(osp.realpath(__file__)), fn)
 
 def main(args):
-    cfg = yaml.load(open(args.config), Loader=yaml.SafeLoader)
+    fp_config = make_abs_path('facebox/configs/mb1_120x120.yml')
+    cfg = yaml.load(open(fp_config), Loader=yaml.SafeLoader)
 
     # Init FaceBoxes and TDDFA, recommend using onnx flag
     if args.onnx:
@@ -60,6 +64,9 @@ def main(args):
     wfp = f'examples/results/{args.img_fp.split("/")[-1].replace(old_suffix, "")}_{args.opt}' + new_suffix
 
     ver_lst = tddfa.recon_vers(param_lst, roi_box_lst, dense_flag=dense_flag)
+    P, pose = calc_pose(param_lst[0])
+    print(f'yaw: {pose[0]:.1f}, pitch: {pose[1]:.1f}, roll: {pose[2]:.1f}')
+    yaw, pitch, roll = pose
 
     if args.opt == '2d_sparse':
         draw_landmarks(img, ver_lst, show_flag=args.show_flag, dense_flag=dense_flag, wfp=wfp)
@@ -73,7 +80,7 @@ def main(args):
     elif args.opt == 'pncc':
         pncc(img, ver_lst, tddfa.tri, show_flag=args.show_flag, wfp=wfp, with_bg_flag=True)
     elif args.opt == 'uv_tex':
-        uv_tex(img, ver_lst, tddfa.tri, show_flag=args.show_flag, wfp=wfp)
+        uv_tex(img, ver_lst, tddfa.tri, show_flag=args.show_flag, wfp=wfp, inter='nearest', yaw=yaw)
     elif args.opt == 'pose':
         viz_pose(img, param_lst, ver_lst, show_flag=args.show_flag, wfp=wfp)
     elif args.opt == 'ply':
